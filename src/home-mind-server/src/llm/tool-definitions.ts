@@ -115,6 +115,50 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
 ];
 
+/**
+ * Web search tool definitions — only included when BRAVE_API_KEY is configured.
+ * Kept separate from HA_TOOL_DEFINITIONS so the LLM doesn't see tools it can't use.
+ */
+export const WEB_TOOL_DEFINITIONS: ToolDefinition[] = [
+  {
+    name: "web_search",
+    description:
+      "Search the internet for current information. Use this for any question about real-time data, current events, facts you're unsure about, prices, weather forecasts, sports scores, or anything that requires up-to-date internet knowledge. Returns top web results with title, URL, and description.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "The search query. Be specific and concise (e.g., 'Sydney weather today', 'latest iPhone price Australia', 'who won the AFL game yesterday').",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "news_search",
+    description:
+      "Search for recent news articles. Use this when the user asks about news, current events, headlines, or what's happening in the world. Returns news articles with title, URL, description, age, and source.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "The news search query. Can be a topic ('technology'), event ('earthquake'), person ('Trump'), or general ('top news today').",
+        },
+        freshness: {
+          type: "string",
+          description:
+            "Filter by recency. Options: 'pd' (past day/24h), 'pw' (past week), 'pm' (past month). Default: no filter (all recent news).",
+        },
+      },
+      required: ["query"],
+    },
+  },
+];
+
 export function toAnthropicTools(tools: ToolDefinition[]): Anthropic.Tool[] {
   return tools.map((t) => ({
     name: t.name,

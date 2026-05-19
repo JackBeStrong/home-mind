@@ -13,6 +13,9 @@ const ConfigSchema = z
     openaiApiKey: z.string().optional(),
     openaiBaseUrl: z.string().url().optional(),
 
+    // Web search (Brave Search API — enables web_search and news_search tools)
+    braveApiKey: z.string().optional(),
+
     // OpenAI fact-extractor tuning (applies only to OpenAIFactExtractor — chat
     // returns free-form text and ignores these). Some OpenAI-compatible
     // providers (notably qwen3.6:27b via Ollama) emit empty content unless
@@ -98,6 +101,7 @@ export function loadConfig(): Config {
     anthropicApiKey: emptyToUndefined(process.env.ANTHROPIC_API_KEY),
     openaiApiKey: emptyToUndefined(process.env.OPENAI_API_KEY),
     openaiBaseUrl: emptyToUndefined(process.env.OPENAI_BASE_URL),
+    braveApiKey: emptyToUndefined(process.env.BRAVE_API_KEY),
     openaiResponseFormat: emptyToUndefined(process.env.OPENAI_RESPONSE_FORMAT),
     openaiMaxTokens: emptyToUndefined(process.env.OPENAI_MAX_TOKENS),
     ollamaBaseUrl: emptyToUndefined(process.env.OLLAMA_BASE_URL),

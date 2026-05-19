@@ -6,7 +6,7 @@ import { HomeAssistantClient } from "../ha/client.js";
 import { DeviceScanner } from "../ha/device-scanner.js";
 import { TopologyScanner } from "../ha/topology-scanner.js";
 import { buildSystemPromptText } from "./prompts.js";
-import { TOOL_DEFINITIONS, toOpenAITools } from "./tool-definitions.js";
+import { getOpenAITools } from "./tools.js";
 import { handleToolCall, extractAndStoreFacts } from "./tool-handler.js";
 import type {
   ChatRequest,
@@ -18,8 +18,6 @@ import type {
 } from "./interface.js";
 
 type FunctionToolCall = OpenAI.ChatCompletionMessageFunctionToolCall;
-
-const OPENAI_TOOLS = toOpenAITools(TOOL_DEFINITIONS);
 
 export class OpenAIChatEngine implements IChatEngine {
   private client: OpenAI;
@@ -120,7 +118,7 @@ export class OpenAIChatEngine implements IChatEngine {
       const toolPromises = result.toolCalls.map(async (tc: FunctionToolCall) => {
         toolsUsed.push(tc.function.name);
         const args = JSON.parse(tc.function.arguments);
-        const toolResult = await handleToolCall(this.ha, tc.function.name, args);
+        const toolResult = await handleToolCall(this.ha, tc.function.name, args, this.config.braveApiKey);
         return {
           role: "tool" as const,
           tool_call_id: tc.id,
@@ -205,11 +203,12 @@ export class OpenAIChatEngine implements IChatEngine {
     finishReason: string | null;
     toolCalls: FunctionToolCall[];
   }> {
+    const webSearchEnabled = !!this.config.braveApiKey;
     const stream = await this.client.chat.completions.create({
       model: this.config.llmModel,
       max_tokens: isVoice ? 500 : 2048,
       messages,
-      tools: OPENAI_TOOLS,
+      tools: getOpenAITools(webSearchEnabled),
       stream: true,
     });
 

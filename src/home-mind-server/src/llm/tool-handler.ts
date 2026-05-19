@@ -3,6 +3,7 @@ import type { IMemoryStore } from "../memory/interface.js";
 import type { IFactExtractor } from "./interface.js";
 import type { ExtractedFact } from "../memory/types.js";
 import { filterFacts } from "../memory/fact-patterns.js";
+import { webSearch, newsSearch } from "./web-search.js";
 
 /** Max history entries to return to the LLM to avoid blowing context window */
 const MAX_HISTORY_ENTRIES = 200;
@@ -51,7 +52,8 @@ export function truncateHistory(
 export async function handleToolCall(
   ha: HomeAssistantClient,
   toolName: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  braveApiKey?: string
 ): Promise<unknown> {
   const start = Date.now();
   console.log(`[tool] ${toolName} called with: ${JSON.stringify(input)}`);
@@ -90,6 +92,29 @@ export async function handleToolCall(
           endTime
         );
         result = truncateHistory(history);
+        break;
+      }
+
+      case "web_search": {
+        if (!braveApiKey) {
+          result = { error: "Web search is not configured (BRAVE_API_KEY not set)" };
+          break;
+        }
+        result = await webSearch(braveApiKey, input.query as string);
+        break;
+      }
+
+      case "news_search": {
+        if (!braveApiKey) {
+          result = { error: "News search is not configured (BRAVE_API_KEY not set)" };
+          break;
+        }
+        result = await newsSearch(
+          braveApiKey,
+          input.query as string,
+          undefined,
+          input.freshness as string | undefined
+        );
         break;
       }
 

@@ -6,7 +6,7 @@ import { HomeAssistantClient } from "../ha/client.js";
 import { DeviceScanner } from "../ha/device-scanner.js";
 import { TopologyScanner } from "../ha/topology-scanner.js";
 import { buildSystemPrompt, type CachedSystemPrompt } from "./prompts.js";
-import { HA_TOOLS } from "./tools.js";
+import { getAnthropicTools } from "./tools.js";
 import { handleToolCall, extractAndStoreFacts } from "./tool-handler.js";
 import type {
   ChatRequest,
@@ -122,7 +122,8 @@ export class LLMClient implements IChatEngine {
         const result = await handleToolCall(
           this.ha,
           block.name,
-          block.input as Record<string, unknown>
+          block.input as Record<string, unknown>,
+          this.config.braveApiKey
         );
         return {
           type: "tool_result" as const,
@@ -182,11 +183,12 @@ export class LLMClient implements IChatEngine {
     isVoice: boolean,
     onChunk?: StreamCallback
   ): Promise<Anthropic.Message> {
+    const webSearchEnabled = !!this.config.braveApiKey;
     const stream = this.anthropic.messages.stream({
       model: this.config.llmModel,
       max_tokens: isVoice ? 500 : 2048,
       system: systemPrompt,
-      tools: HA_TOOLS,
+      tools: getAnthropicTools(webSearchEnabled),
       messages,
     });
 
