@@ -4,6 +4,7 @@ import type { IFactExtractor } from "./interface.js";
 import type { ExtractedFact } from "../memory/types.js";
 import { filterFacts } from "../memory/fact-patterns.js";
 import { webSearch, newsSearch } from "./web-search.js";
+import type { McpManager } from "../mcp/manager.js";
 
 /** Max history entries to return to the LLM to avoid blowing context window */
 const MAX_HISTORY_ENTRIES = 200;
@@ -53,7 +54,8 @@ export async function handleToolCall(
   ha: HomeAssistantClient,
   toolName: string,
   input: Record<string, unknown>,
-  braveApiKey?: string
+  braveApiKey?: string,
+  mcpManager?: McpManager
 ): Promise<unknown> {
   const start = Date.now();
   console.log(`[tool] ${toolName} called with: ${JSON.stringify(input)}`);
@@ -119,6 +121,11 @@ export async function handleToolCall(
       }
 
       default:
+        // Route to MCP servers before returning "unknown tool"
+        if (mcpManager?.hasTool(toolName)) {
+          result = await mcpManager.callTool(toolName, input);
+          break;
+        }
         result = { error: `Unknown tool: ${toolName}` };
     }
 

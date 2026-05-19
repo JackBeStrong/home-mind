@@ -190,7 +190,7 @@ describe("OpenAIChatEngine", () => {
 
     expect(handleToolCall).toHaveBeenCalledWith(ha, "get_state", {
       entity_id: "light.kitchen",
-    }, undefined);
+    }, undefined, undefined);
     expect(result.response).toBe("The light is on");
     expect(result.toolsUsed).toEqual(["get_state"]);
   });

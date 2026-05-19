@@ -5,6 +5,7 @@ import type { IConversationStore } from "../memory/types.js";
 import { HomeAssistantClient } from "../ha/client.js";
 import { DeviceScanner } from "../ha/device-scanner.js";
 import { TopologyScanner } from "../ha/topology-scanner.js";
+import type { McpManager } from "../mcp/manager.js";
 import { buildSystemPrompt, type CachedSystemPrompt } from "./prompts.js";
 import { getAnthropicTools } from "./tools.js";
 import { handleToolCall, extractAndStoreFacts } from "./tool-handler.js";
@@ -27,6 +28,7 @@ export class LLMClient implements IChatEngine {
   private scanner: DeviceScanner;
   private topology: TopologyScanner;
   private config: Config;
+  private mcpManager?: McpManager;
 
   constructor(
     config: Config,
@@ -35,7 +37,8 @@ export class LLMClient implements IChatEngine {
     extractor: IFactExtractor,
     ha: HomeAssistantClient,
     scanner: DeviceScanner,
-    topology: TopologyScanner
+    topology: TopologyScanner,
+    mcpManager?: McpManager
   ) {
     this.config = config;
     this.anthropic = new Anthropic({ apiKey: config.anthropicApiKey });
@@ -45,6 +48,7 @@ export class LLMClient implements IChatEngine {
     this.ha = ha;
     this.scanner = scanner;
     this.topology = topology;
+    this.mcpManager = mcpManager;
   }
 
   /**
@@ -123,7 +127,8 @@ export class LLMClient implements IChatEngine {
           this.ha,
           block.name,
           block.input as Record<string, unknown>,
-          this.config.braveApiKey
+          this.config.braveApiKey,
+          this.mcpManager
         );
         return {
           type: "tool_result" as const,
@@ -184,11 +189,12 @@ export class LLMClient implements IChatEngine {
     onChunk?: StreamCallback
   ): Promise<Anthropic.Message> {
     const webSearchEnabled = !!this.config.braveApiKey;
+    const mcpTools = this.mcpManager?.getToolDefinitions() ?? [];
     const stream = this.anthropic.messages.stream({
       model: this.config.llmModel,
       max_tokens: isVoice ? 500 : 2048,
       system: systemPrompt,
-      tools: getAnthropicTools(webSearchEnabled),
+      tools: getAnthropicTools(webSearchEnabled, mcpTools),
       messages,
     });
 

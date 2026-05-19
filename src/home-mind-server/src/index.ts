@@ -14,6 +14,7 @@ import { HomeAssistantClient } from "./ha/client.js";
 import { DeviceScanner } from "./ha/device-scanner.js";
 import { TopologyScanner } from "./ha/topology-scanner.js";
 import { createChatEngine, createFactExtractor } from "./llm/factory.js";
+import { McpManager } from "./mcp/manager.js";
 import { createRouter } from "./api/routes.js";
 import { createSttService } from "./stt/stt-service.js";
 import { createTtsService } from "./tts/tts-service.js";
@@ -65,7 +66,18 @@ await Promise.all([scanner.scan(), topology.scan()]);
 console.log(`  ✓ Device scanner: ${scanner.getProfiles().length} light profiles loaded`);
 console.log(`  ✓ Topology scanner: home layout ${topology.hasLayout() ? "loaded" : "unavailable"}`);
 
-const llm = createChatEngine(config, memory, conversations, extractor, ha, scanner, topology);
+// Initialize MCP servers (optional — only when MCP_SERVERS is configured)
+let mcpManager: McpManager | undefined;
+if (config.mcpServers) {
+  mcpManager = new McpManager();
+  await mcpManager.connect(config.mcpServers);
+  const toolCount = mcpManager.getToolDefinitions().length;
+  console.log(`  ✓ MCP: ${toolCount} tool(s) from ${mcpManager.isActive ? "connected" : "no"} server(s)`);
+} else {
+  console.log("  MCP: disabled (no MCP_SERVERS configured)");
+}
+
+const llm = createChatEngine(config, memory, conversations, extractor, ha, scanner, topology, mcpManager);
 console.log(`  LLM client: ${config.llmProvider}/${config.llmModel}`);
 
 // Initialize STT (optional — only when STT_PROVIDER is set)
@@ -153,17 +165,19 @@ const cleanupJob = new MemoryCleanupJob(memory, conversations, config.memoryClea
 cleanupJob.start();
 
 // Graceful shutdown
-process.on("SIGTERM", () => {
+process.on("SIGTERM", async () => {
   console.log("Shutting down...");
   cleanupJob.stop();
+  if (mcpManager) await mcpManager.disconnect();
   conversations.close();
   memory.close();
   process.exit(0);
 });
 
-process.on("SIGINT", () => {
+process.on("SIGINT", async () => {
   console.log("Shutting down...");
   cleanupJob.stop();
+  if (mcpManager) await mcpManager.disconnect();
   conversations.close();
   memory.close();
   process.exit(0);

@@ -5,6 +5,7 @@ import type { IConversationStore } from "../memory/types.js";
 import { HomeAssistantClient } from "../ha/client.js";
 import { DeviceScanner } from "../ha/device-scanner.js";
 import { TopologyScanner } from "../ha/topology-scanner.js";
+import type { McpManager } from "../mcp/manager.js";
 import { buildSystemPromptText } from "./prompts.js";
 import { getOpenAITools } from "./tools.js";
 import { handleToolCall, extractAndStoreFacts } from "./tool-handler.js";
@@ -28,6 +29,7 @@ export class OpenAIChatEngine implements IChatEngine {
   private scanner: DeviceScanner;
   private topology: TopologyScanner;
   private config: Config;
+  private mcpManager?: McpManager;
 
   constructor(
     config: Config,
@@ -36,7 +38,8 @@ export class OpenAIChatEngine implements IChatEngine {
     extractor: IFactExtractor,
     ha: HomeAssistantClient,
     scanner: DeviceScanner,
-    topology: TopologyScanner
+    topology: TopologyScanner,
+    mcpManager?: McpManager
   ) {
     this.config = config;
     this.client = new OpenAI({
@@ -53,6 +56,7 @@ export class OpenAIChatEngine implements IChatEngine {
     this.ha = ha;
     this.scanner = scanner;
     this.topology = topology;
+    this.mcpManager = mcpManager;
   }
 
   async chat(
@@ -118,7 +122,7 @@ export class OpenAIChatEngine implements IChatEngine {
       const toolPromises = result.toolCalls.map(async (tc: FunctionToolCall) => {
         toolsUsed.push(tc.function.name);
         const args = JSON.parse(tc.function.arguments);
-        const toolResult = await handleToolCall(this.ha, tc.function.name, args, this.config.braveApiKey);
+        const toolResult = await handleToolCall(this.ha, tc.function.name, args, this.config.braveApiKey, this.mcpManager);
         return {
           role: "tool" as const,
           tool_call_id: tc.id,
@@ -204,11 +208,12 @@ export class OpenAIChatEngine implements IChatEngine {
     toolCalls: FunctionToolCall[];
   }> {
     const webSearchEnabled = !!this.config.braveApiKey;
+    const mcpTools = this.mcpManager?.getToolDefinitions() ?? [];
     const stream = await this.client.chat.completions.create({
       model: this.config.llmModel,
       max_tokens: isVoice ? 500 : 2048,
       messages,
-      tools: getOpenAITools(webSearchEnabled),
+      tools: getOpenAITools(webSearchEnabled, mcpTools),
       stream: true,
     });
 

@@ -80,7 +80,8 @@ describe("createChatEngine", () => {
       mockExtractor,
       mockHa,
       mockScanner,
-      mockTopology
+      mockTopology,
+      undefined
     );
   });
 
@@ -97,7 +98,8 @@ describe("createChatEngine", () => {
       mockExtractor,
       mockHa,
       mockScanner,
-      mockTopology
+      mockTopology,
+      undefined
     );
   });
 
@@ -117,7 +119,8 @@ describe("createChatEngine", () => {
       mockExtractor,
       mockHa,
       mockScanner,
-      mockTopology
+      mockTopology,
+      undefined
     );
   });
 
@@ -141,7 +144,8 @@ describe("createChatEngine", () => {
       mockExtractor,
       mockHa,
       mockScanner,
-      mockTopology
+      mockTopology,
+      undefined
     );
   });
 });

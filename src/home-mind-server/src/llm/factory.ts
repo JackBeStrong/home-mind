@@ -4,6 +4,7 @@ import type { IConversationStore } from "../memory/types.js";
 import { HomeAssistantClient } from "../ha/client.js";
 import { DeviceScanner } from "../ha/device-scanner.js";
 import { TopologyScanner } from "../ha/topology-scanner.js";
+import type { McpManager } from "../mcp/manager.js";
 import type { IChatEngine, IFactExtractor } from "./interface.js";
 import { LLMClient } from "./client.js";
 import { OpenAIChatEngine } from "./openai-client.js";
@@ -17,11 +18,12 @@ export function createChatEngine(
   extractor: IFactExtractor,
   ha: HomeAssistantClient,
   scanner: DeviceScanner,
-  topology: TopologyScanner
+  topology: TopologyScanner,
+  mcpManager?: McpManager
 ): IChatEngine {
   switch (config.llmProvider) {
     case "openai":
-      return new OpenAIChatEngine(config, memory, conversations, extractor, ha, scanner, topology);
+      return new OpenAIChatEngine(config, memory, conversations, extractor, ha, scanner, topology, mcpManager);
     case "ollama":
       return new OpenAIChatEngine(
         {
@@ -34,10 +36,11 @@ export function createChatEngine(
         extractor,
         ha,
         scanner,
-        topology
+        topology,
+        mcpManager
       );
     case "anthropic":
-      return new LLMClient(config, memory, conversations, extractor, ha, scanner, topology);
+      return new LLMClient(config, memory, conversations, extractor, ha, scanner, topology, mcpManager);
   }
 }
 

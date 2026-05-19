@@ -3,8 +3,10 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install curl for healthcheck and build tools for better-sqlite3
-RUN apt-get update && apt-get install -y curl python3 make g++ && rm -rf /var/lib/apt/lists/*
+# Install curl for healthcheck, build tools for better-sqlite3,
+# and uv for Python MCP servers (uvx auto-downloads packages like npx -y)
+RUN apt-get update && apt-get install -y curl python3 make g++ && rm -rf /var/lib/apt/lists/* \
+    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 
 # Copy package files
 COPY package*.json ./
