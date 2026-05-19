@@ -125,7 +125,7 @@ export class DeviceScanner {
     ];
 
     for (const p of lights) {
-      lines.push(`\n**${p.entityId}** "${p.friendlyName}" [${p.state}]`);
+      lines.push(`\n**${p.entityId}** "${p.friendlyName}"`);
 
       // White method
       switch (p.whiteMethod.type) {
